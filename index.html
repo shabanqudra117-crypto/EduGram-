@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>EduGram</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:"Inter",sans-serif;background:#fafafa;color:#000;overflow:hidden;height:100vh;width:100vw;}
+#splash{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:16px;}
+.splash-logo{font-family:"Dancing Script",cursive;font-size:2.8rem;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.spinner{width:28px;height:28px;border:3px solid #f0f0f0;border-top-color:#dc2743;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#authWrap{position:fixed;inset:0;background:#fff;display:none;flex-direction:column;align-items:center;overflow-y:auto;padding:50px 24px 30px;z-index:50;}
+.auth-logo{font-family:"Dancing Script",cursive;font-size:3.2rem;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
+.auth-tag{font-size:.82rem;color:#888;margin-bottom:28px;text-align:center;}
+.auth-tabs{display:flex;width:100%;max-width:360px;border-bottom:1px solid #dbdbdb;margin-bottom:22px;}
+.auth-tab{flex:1;padding:11px;text-align:center;font-size:.88rem;font-weight:600;color:#aaa;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;}
+.auth-tab.act{color:#000;border-bottom-color:#000;}
+.auth-form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px;}
+.au-inp{width:100%;padding:12px 14px;background:#fafafa;border:1.5px solid #dbdbdb;border-radius:8px;font-family:"Inter",sans-serif;font-size:.9rem;outline:none;transition:.2s;}
+.au-inp:focus{border-color:#999;background:#fff;}
+.pw-wrap{display:flex;flex-direction:column;gap:5px;}
+.pw-bar-bg{height:4px;background:#efefef;border-radius:99px;overflow:hidden;}
+.pw-bar{height:100%;width:0%;border-radius:99px;transition:width .35s,background .35s;}
+.pw-lbl{font-size:.7rem;color:#aaa;}
+.au-btn{width:100%;padding:13px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border:none;border-radius:8px;color:#fff;font-family:"Inter",sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;margin-top:4px;}
+.au-btn:active{opacity:.85;}
+.au-err{font-size:.76rem;color:#dc2743;text-align:center;min-height:16px;}
+.hid{display:none!important;}
+#app{position:fixed;inset:0;display:none;flex-direction:column;background:#fafafa;}
+#topBar{position:fixed;top:0;left:0;right:0;height:48px;background:#fff;border-bottom:1px solid #dbdbdb;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:30;}
+.top-logo{font-family:"Dancing Script",cursive;font-size:1.65rem;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.top-icons{display:flex;gap:16px;align-items:center;cursor:pointer;}
+#contentArea{position:fixed;top:48px;bottom:50px;left:0;right:0;overflow:hidden;}
+.sec{height:100%;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
+.sec.act{display:block;}
+#botNav{position:fixed;bottom:0;left:0;right:0;height:50px;background:#fff;border-top:1px solid #dbdbdb;display:flex;align-items:center;justify-content:space-around;z-index:30;}
+.nav-i{flex:1;display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer;color:#000;}
+.nav-i svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.nav-i.act svg{stroke-width:2.8;}
+.stories-row{background:#fff;border-bottom:1px solid #dbdbdb;padding:10px 0 10px 12px;display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;}
+.stories-row::-webkit-scrollbar{display:none;}
+.story-itm{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;}
+.story-ring{width:62px;height:62px;border-radius:50%;padding:2.5px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);}
+.story-av{width:100%;height:100%;border-radius:50%;background:#f0f0f0;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:#555;overflow:hidden;}
+.story-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.story-nm{font-size:.66rem;color:#000;max-width:62px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.post-card{background:#fff;margin-bottom:8px;}
+.post-hdr{display:flex;align-items:center;padding:10px 12px;gap:10px;}
+.post-av{width:36px;height:36px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;color:#555;flex-shrink:0;overflow:hidden;}
+.post-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.post-uname{font-size:.88rem;font-weight:600;}
+.post-sub{font-size:.7rem;color:#888;}
+.post-more{font-size:1.2rem;color:#aaa;margin-left:auto;cursor:pointer;}
+.post-img-wrap{width:100%;background:#f8f8f8;}
+.post-img-wrap img{width:100%;max-height:420px;object-fit:cover;display:block;}
+.post-text-box{padding:16px 14px;background:#fafafa;border-top:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0;font-size:.92rem;color:#333;line-height:1.6;word-break:break-word;}
+.post-acts{display:flex;align-items:center;padding:6px 10px;gap:12px;}
+.pact{display:flex;align-items:center;gap:4px;cursor:pointer;padding:4px;}
+.pact svg{width:24px;height:24px;fill:none;stroke:#000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:.15s;}
+.pact.liked svg{fill:#dc2743;stroke:#dc2743;}
+.pact-save{margin-left:auto;}
+.post-likes{padding:0 12px;font-size:.84rem;font-weight:600;margin-bottom:3px;}
+.post-cap{padding:0 12px 3px;font-size:.84rem;line-height:1.5;}
+.post-cap b{font-weight:600;}
+.post-cm-link{padding:0 12px 3px;font-size:.8rem;color:#aaa;cursor:pointer;}
+.post-time{padding:0 12px 10px;font-size:.68rem;color:#aaa;text-transform:uppercase;letter-spacing:.3px;}
+#createModal{position:fixed;inset:0;background:#fff;z-index:100;display:none;flex-direction:column;}
+#createModal.open{display:flex;}
+.cr-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #dbdbdb;}
+.cr-cancel{font-size:.9rem;cursor:pointer;}
+.cr-title{font-size:.98rem;font-weight:700;}
+.cr-share{font-size:.9rem;font-weight:700;color:#0095f6;cursor:pointer;}
+.cr-body{flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.cr-user-row{display:flex;align-items:center;gap:10px;}
+.cr-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:#fff;flex-shrink:0;}
+.cr-ta{border:none;outline:none;font-family:"Inter",sans-serif;font-size:.94rem;resize:none;min-height:100px;background:transparent;width:100%;color:#000;}
+.cr-ta::placeholder{color:#bbb;}
+.cr-img-sec{border-top:1px solid #efefef;padding-top:12px;}
+.cr-img-lbl{font-size:.78rem;color:#888;margin-bottom:6px;}
+.cr-img-inp{width:100%;padding:9px 12px;background:#fafafa;border:1px solid #dbdbdb;border-radius:8px;font-size:.84rem;outline:none;}
+.cr-img-prev{width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-top:8px;display:none;}
+.search-bar-wrap{padding:10px 12px;background:#fff;border-bottom:1px solid #dbdbdb;position:sticky;top:0;z-index:5;}
+.search-bar{width:100%;padding:8px 14px;background:#efefef;border:none;border-radius:10px;font-family:"Inter",sans-serif;font-size:.88rem;outline:none;}
+.su-item{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #fafafa;}
+.su-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:.9rem;flex-shrink:0;overflow:hidden;}
+.su-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.su-name{font-size:.88rem;font-weight:600;}
+.su-handle{font-size:.76rem;color:#888;}
+.empty-msg{text-align:center;padding:40px 20px;color:#aaa;font-size:.88rem;line-height:1.8;}
+.prof-hdr{background:#fff;padding:18px 14px 14px;}
+.prof-top{display:flex;align-items:center;gap:18px;margin-bottom:14px;}
+.prof-pic{width:82px;height:82px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.7rem;color:#fff;flex-shrink:0;overflow:hidden;}
+.prof-pic img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.prof-stats{display:flex;gap:18px;flex:1;justify-content:center;}
+.stat-b{text-align:center;}
+.stat-n{font-size:1.08rem;font-weight:700;}
+.stat-l{font-size:.7rem;color:#888;}
+.prof-name{font-size:.93rem;font-weight:600;margin-bottom:2px;}
+.prof-bio{font-size:.83rem;color:#444;line-height:1.5;}
+.prof-edit-btn{width:100%;padding:7px;background:#fff;border:1px solid #dbdbdb;border-radius:8px;font-family:"Inter",sans-serif;font-weight:600;font-size:.86rem;cursor:pointer;margin-top:10px;}
+.prof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;}
+.grid-post{aspect-ratio:1;background:#f0f0f0;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.grid-post img{width:100%;height:100%;object-fit:cover;}
+.grid-txt{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:6px;background:#fafafa;font-size:.68rem;color:#888;text-align:center;overflow:hidden;}
+#cmModal{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;z-index:200;transform:translateY(100%);transition:transform .3s;max-height:78vh;display:flex;flex-direction:column;box-shadow:0 -3px 18px rgba(0,0,0,.1);}
+#cmModal.open{transform:translateY(0);}
+.cm-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #efefef;}
+.cm-title{font-size:.96rem;font-weight:700;}
+.cm-close{font-size:1.1rem;cursor:pointer;color:#888;}
+.cm-list{flex:1;overflow-y:auto;padding:10px 12px;}
+.cm-item{display:flex;gap:10px;margin-bottom:12px;}
+.cm-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;flex-shrink:0;}
+.cm-body{flex:1;}
+.cm-txt{font-size:.83rem;line-height:1.5;}
+.cm-txt b{font-weight:600;}
+.cm-time{font-size:.68rem;color:#aaa;margin-top:1px;}
+.cm-inp-row{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #efefef;}
+.cm-inp-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0;}
+.cm-inp{flex:1;border:none;outline:none;font-family:"Inter",sans-serif;font-size:.88rem;}
+.cm-inp::placeholder{color:#ccc;}
+.cm-send{font-size:.88rem;font-weight:700;color:#0095f6;cursor:pointer;}
+.cm-send.off{color:#b2dffc;}
+#editModal{position:fixed;inset:0;background:#fff;z-index:150;display:none;flex-direction:column;}
+#editModal.open{display:flex;}
+.edit-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #dbdbdb;}
+.edit-body{flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:14px;}
+.edit-lbl{font-size:.74rem;color:#888;margin-bottom:3px;}
+.edit-inp{width:100%;padding:10px 12px;border:1.5px solid #dbdbdb;border-radius:8px;font-family:"Inter",sans-serif;font-size:.88rem;outline:none;}
+.edit-inp:focus{border-color:#999;}
+.edit-save{width:100%;padding:12px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border:none;border-radius:8px;color:#fff;font-family:"Inter",sans-serif;font-weight:700;font-size:.93rem;cursor:pointer;}
+.notif-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #fafafa;}
+.notif-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;font-size:.82rem;}
+.notif-txt{flex:1;font-size:.83rem;line-height:1.4;color:#333;}
+.notif-txt b{font-weight:600;}
+#ovBg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:180;display:none;}
+#ovBg.on{display:block;}
+#toast{position:fixed;bottom:66px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(0,0,0,.75);color:#fff;padding:9px 18px;border-radius:18px;font-size:.8rem;opacity:0;transition:opacity .3s,transform .3s;z-index:500;white-space:nowrap;pointer-events:none;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="splash-logo">EduGram</div><div class="spinner"></div></div>
+
+<div id="authWrap">
+  <div class="auth-logo">EduGram</div>
+  <div class="auth-tag">Share knowledge. Grow together. 📚</div>
+  <div class="auth-tabs">
+    <div class="auth-tab act" onclick="switchTab('login')">Log In</div>
+    <div class="auth-tab" onclick="switchTab('signup')">Sign Up</div>
+  </div>
+  <div id="loginForm" class="auth-form">
+    <input type="email" class="au-inp" id="liEmail" placeholder="Email address"/>
+    <input type="password" class="au-inp" id="liPass" placeholder="Password"/>
+    <div class="au-err" id="liErr"></div>
+    <button class="au-btn" onclick="doLogin()">Log In</button>
+  </div>
+  <div id="signupForm" class="auth-form hid">
+    <input type="text" class="au-inp" id="suName" placeholder="Full name"/>
+    <input type="text" class="au-inp" id="suUser" placeholder="Username (no spaces)"/>
+    <input type="email" class="au-inp" id="suEmail" placeholder="Email address"/>
+    <div class="pw-wrap">
+      <input type="password" class="au-inp" id="suPass" placeholder="Password" oninput="pwStrength(this.value)"/>
+      <div class="pw-bar-bg"><div class="pw-bar" id="pwBar"></div></div>
+      <div class="pw-lbl" id="pwLbl">Enter a password</div>
+    </div>
+    <div class="au-err" id="suErr"></div>
+    <button class="au-btn" onclick="doSignup()">Create Account</button>
+  </div>
+</div>
+
+<div id="app">
+  <div id="topBar">
+    <div class="top-logo">EduGram</div>
+    <div class="top-icons">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" onclick="switchSec('notif')" style="cursor:pointer"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span onclick="doLogout()" style="font-size:1rem;cursor:pointer;">⎋</span>
+    </div>
+  </div>
+  <div id="contentArea">
+    <div id="homeSec" class="sec act">
+      <div class="stories-row" id="storiesRow"></div>
+      <div id="feedList"></div>
+      <div style="height:12px;"></div>
+    </div>
+    <div id="searchSec" class="sec">
+      <div class="search-bar-wrap"><input type="text" class="search-bar" id="searchInp" placeholder="Search users..." oninput="searchUsers(this.value)"/></div>
+      <div id="searchRes"><div class="empty-msg">Search for people to connect with 🔍</div></div>
+    </div>
+    <div id="notifSec" class="sec">
+      <div style="padding:13px 14px;font-size:.93rem;font-weight:700;border-bottom:1px solid #efefef;">Activity</div>
+      <div id="notifList"></div>
+    </div>
+    <div id="profSec" class="sec">
+      <div class="prof-hdr">
+        <div class="prof-top">
+          <div class="prof-pic" id="profPic">?</div>
+          <div class="prof-stats">
+            <div class="stat-b"><div class="stat-n" id="profPosts">0</div><div class="stat-l">Posts</div></div>
+            <div class="stat-b"><div class="stat-n" id="profFollowers">0</div><div class="stat-l">Followers</div></div>
+            <div class="stat-b"><div class="stat-n" id="profFollowing">0</div><div class="stat-l">Following</div></div>
+          </div>
+        </div>
+        <div class="prof-name" id="profName">...</div>
+        <div class="prof-bio" id="profBio"></div>
+        <button class="prof-edit-btn" onclick="openEdit()">Edit Profile</button>
+      </div>
+      <div class="prof-grid" id="profGrid"></div>
+    </div>
+  </div>
+  <div id="botNav">
+    <div class="nav-i act" id="ni-home" onclick="switchSec('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div class="nav-i" id="ni-search" onclick="switchSec('search')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <div class="nav-i" id="ni-create" onclick="openCreate()">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </div>
+    <div class="nav-i" id="ni-notif" onclick="switchSec('notif')">
+      <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </div>
+    <div class="nav-i" id="ni-prof" onclick="switchSec('prof')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+  </div>
+</div>
+
+<div id="createModal">
+  <div class="cr-hdr">
+    <span class="cr-cancel" onclick="closeCreate()">Cancel</span>
+    <span class="cr-title">New Post</span>
+    <span class="cr-share" onclick="sharePost()">Share</span>
+  </div>
+  <div class="cr-body">
+    <div class="cr-user-row">
+      <div class="cr-av" id="crAv">?</div>
+      <span style="font-size:.88rem;font-weight:600;" id="crUser">username</span>
+    </div>
+    <textarea class="cr-ta" id="crCap" placeholder="Write a caption, ask a question, share knowledge..."></textarea>
+    <div class="cr-img-sec">
+      <div class="cr-img-lbl">📷 Add image (paste image URL — optional)</div>
+      <input type="url" class="cr-img-inp" id="crImg" placeholder="https://example.com/image.jpg" oninput="prevImg(this.value)"/>
+      <img id="crImgPrev" class="cr-img-prev" alt="Preview"/>
+    </div>
+  </div>
+</div>
+
+<div id="cmModal">
+  <div class="cm-hdr">
+    <span class="cm-title">Comments</span>
+    <span class="cm-close" onclick="closeCm()">&#x2715;</span>
+  </div>
+  <div class="cm-list" id="cmList"></div>
+  <div class="cm-inp-row">
+    <div class="cm-inp-av" id="cmInpAv">?</div>
+    <input type="text" class="cm-inp" id="cmInp" placeholder="Add a comment..." maxlength="200"/>
+    <span class="cm-send off" id="cmSend" onclick="sendCm()">Post</span>
+  </div>
+</div>
+
+<div id="editModal">
+  <div class="edit-hdr">
+    <span style="cursor:pointer;font-size:.88rem;" onclick="closeEdit()">Cancel</span>
+    <span style="font-size:.96rem;font-weight:700;">Edit Profile</span>
+    <span style="width:50px;"></span>
+  </div>
+  <div class="edit-body">
+    <div><div class="edit-lbl">Full Name</div><input class="edit-inp" id="eName" placeholder="Full name"/></div>
+    <div><div class="edit-lbl">Username</div><input class="edit-inp" id="eUser" placeholder="username"/></div>
+    <div><div class="edit-lbl">Bio</div><textarea class="edit-inp" id="eBio" style="height:72px;resize:none;" placeholder="Tell something about yourself..."></textarea></div>
+    <div><div class="edit-lbl">Profile Picture URL (optional)</div><inp
